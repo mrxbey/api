@@ -45,17 +45,23 @@ async function sendSMS(content, number) {
     }
 }
 
+// Function to clean the phone number
+function cleanPhoneNumber(phoneNumber) {
+    return phoneNumber.replace(/^\+/, ''); // Remove the leading '+' if it exists
+}
+
+
 // Endpoint for order created
 app.post('/order-created', async (req, res) => {
     const { Name, PhoneNumber, OrderId } = req.body;
     if (!Name || !PhoneNumber || !OrderId) {
         return res.status(400).send({ error: 'Missing required fields' });
     }
-
+    const cleanedPhoneNumber = cleanPhoneNumber(PhoneNumber);
     const messageContent = `Sayın ${Name}, siparişiniz alınmıştır. En kısa sürede hazırlanıp kargoya verilecektir.`;
 
     try {
-        const smsResponse = await sendSMS(messageContent, PhoneNumber);
+        const smsResponse = await sendSMS(messageContent, cleanedPhoneNumber);
         res.send({ success: true, smsResponse });
     } catch (error) {
         res.status(500).send({ error: 'Failed to send SMS' });
@@ -68,11 +74,11 @@ app.post('/order-updated', async (req, res) => {
     if (!Name || !PhoneNumber || !OrderId || !TrackingCode) {
         return res.status(400).send({ error: 'Missing required fields' });
     }
-
+    const cleanedPhoneNumber = cleanPhoneNumber(PhoneNumber);
     const messageContent = `Sayın ${Name} siparişiniz kargo şirketine teslim edildi. Kargo şirketi tarafından sizlere bildirim gönderilecektir.`;
 
     try {
-        const smsResponse = await sendSMS(messageContent, PhoneNumber);
+        const smsResponse = await sendSMS(messageContent, cleanedPhoneNumber);
         res.send({ success: true, smsResponse });
     } catch (error) {
         res.status(500).send({ error: 'Failed to send SMS' });
