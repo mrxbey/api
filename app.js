@@ -1,14 +1,23 @@
 // app.js
 
 const express = require('express');
-const bodyParser = require('body-parser');
-const axios = require('axios');
 require('dotenv').config();
+const axios = require('axios');
 
 const app = express();
 
 // Middleware to parse JSON bodies
-app.use(bodyParser.json());
+app.use(express.json());
+
+// API Key authentication middleware
+function apiKeyAuth(req, res, next) {
+    const apiKey = req.headers['x-api-key'];
+    if (apiKey && apiKey === process.env.API_KEY) {
+        next();
+    } else {
+        res.status(401).send({ error: 'Unauthorized' });
+    }
+}
 
 // Function to send SMS
 async function sendSMS(content, number) {
@@ -47,35 +56,17 @@ async function sendSMS(content, number) {
 
 // Function to clean the phone number
 function cleanPhoneNumber(phoneNumber) {
-    return phoneNumber.replace(/^\+/, ''); // Remove the leading '+' if it exists
+    return phoneNumber.replace(/[^\d]/g, ''); // Remove non-numeric characters
 }
 
-
 // Endpoint for order created
-app.post('/order-created', async (req, res) => {
+app.post('/order-created', apiKeyAuth, async (req, res) => {
     const { Name, PhoneNumber, OrderId } = req.body;
     if (!Name || !PhoneNumber || !OrderId) {
         return res.status(400).send({ error: 'Missing required fields' });
     }
     const cleanedPhoneNumber = cleanPhoneNumber(PhoneNumber);
-    const messageContent = `Sayın ${Name}, siparişiniz alınmıştır. En kısa sürede hazırlanıp kargoya verilecektir.`;
-
-    try {
-        const smsResponse = await sendSMS(messageContent, cleanedPhoneNumber);
-        res.send({ success: true, smsResponse });
-    } catch (error) {
-        res.status(500).send({ error: 'Failed to send SMS' });
-    }
-});
-
-// Endpoint for order updated
-app.post('/order-updated', async (req, res) => {
-    const { Name, PhoneNumber, OrderId, TrackingCode } = req.body;
-    if (!Name || !PhoneNumber || !OrderId || !TrackingCode) {
-        return res.status(400).send({ error: 'Missing required fields' });
-    }
-    const cleanedPhoneNumber = cleanPhoneNumber(PhoneNumber);
-    const messageContent = `Sayın ${Name} siparişiniz kargo şirketine teslim edildi. Kargo şirketi tarafından sizlere bildirim gönderilecektir.`;
+    const messageContent = `Sn. ${Name}, siparişiniz alınmıştır. En kısa sürede hazırlanıp mesai saatleri içerisinde Yurtiçi Kargo'ya teslim edilecektir.`;
 
     try {
         const smsResponse = await sendSMS(messageContent, cleanedPhoneNumber);
